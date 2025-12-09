@@ -39,7 +39,7 @@ func (h *PcapHandle) NewPcapInterface() {
 
 		inactiveHandle.SetSnapLen(int(h.SnapLen))
 		inactiveHandle.SetPromisc(true)
-		inactiveHandle.SetTimeout(pcap.BlockForever)
+		inactiveHandle.SetTimeout(time.Second)
 		// inactiveHandle.SetBufferSize(1000000 * ph.BufferMb)
 
 		h.PHandle, err = inactiveHandle.Activate()

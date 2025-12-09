@@ -158,7 +158,7 @@ func main() {
 		statsWriters[i] = stats.NewIfStatsPrinter(innis[i], fmt.Sprintf("inif_%s_%d", ifconf.Name, i))
 		statsWriters[i].Init()
 
-		stops[i] = make(chan struct{})
+		stops[i] = make(chan struct{}, 1)
 		go readers[i].Parse(nil, stops[i])
 		go statsWriters[i].Run()
 	}
@@ -175,4 +175,5 @@ func main() {
 		statsWriters[i].Stop()
 		outnis[i].IfHandle.Close()
 	}
+	amodule.Stop()
 }

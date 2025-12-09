@@ -33,7 +33,7 @@ func initRing(device, filter string, snaplen uint32) (*pfring.Ring, error) {
 		return nil, err
 	} else {
 		//TODO should we optimize this?
-		ring.SetPollDuration(0) // default is 500ms - too slow for real-time
+		ring.SetPollDuration(100) // default is 500ms - too slow for real-time
 		ring.SetPollWatermark(0)
 		ring.SetSocketMode(pfring.ReadOnly)
 		return ring, nil
