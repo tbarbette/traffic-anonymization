@@ -155,7 +155,9 @@ func (ni *NetworkInterface) NewNetworkInterface(conf NetworkInterfaceConfigurati
 	} else {
 		panic(errors.New("wrong interface driver type"))
 	}
-	ni.IfHandle.Init(&hc)
+	if err := ni.IfHandle.Init(&hc); err != nil {
+		panic(err)
+	}
 
 }
 
