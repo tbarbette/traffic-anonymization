@@ -112,5 +112,5 @@ func (h *RingHandle) Stats() IfStats {
 }
 
 func (h *RingHandle) Close() error {
-	return nil
+	return h.ring.Close()
 }
