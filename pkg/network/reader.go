@@ -2,7 +2,9 @@ package network
 
 import (
 	"io"
+	"os"
 	"sync"
+	"syscall"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -94,7 +96,12 @@ loop:
 			isValid = false
 
 			if err == io.EOF {
-				break
+				log.Infof("EOF reached on input, shutting down")
+				// signal main via SIGINT so cleanup paths run
+				if p, perr := os.FindProcess(os.Getpid()); perr == nil {
+					_ = p.Signal(syscall.SIGINT)
+				}
+				break loop
 			} else if err != nil {
 				continue
 			}
