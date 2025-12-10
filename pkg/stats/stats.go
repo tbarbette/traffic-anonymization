@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -82,9 +84,11 @@ func (cp *IfStatsPrinter) Run() {
 			return
 		case <-ticker.C:
 			s := cp.Generate()
-			err := os.WriteFile(fmt.Sprintf("%s%s%s", "/tmp/", cp.name, "_ifstats.out"), s, 0644)
+			// Sanitize name to avoid path issues (remove slashes, keep only basename)
+			safeName := strings.ReplaceAll(filepath.Base(cp.name), "/", "_")
+			err := os.WriteFile(fmt.Sprintf("%s%s%s", "/tmp/", safeName, "_ifstats.out"), s, 0644)
 			if err != nil {
-				log.Fatalf("Something went wrong writing statistics: %", err)
+				log.Fatalf("Something went wrong writing statistics: %v", err)
 			}
 		}
 	}
