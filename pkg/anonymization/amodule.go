@@ -65,38 +65,41 @@ func NewAModule(key string, anonymize bool, privateNets bool, localNets []string
 		}
 
 		ret.stopChan = make(chan struct{})
-		go func() {
-			for {
-				now := time.Now()
-				nextTicker := time.Date(
-					now.Year(),
-					now.Month(),
-					now.Day(),
-					ret.loopTime, 0, 0, 0, now.Location(),
-				)
+		if ret.loopTime >= 0 {
+			//Launch the goroutine to change key at loop time
+			go func() {
+				for {
+					now := time.Now()
+					nextTicker := time.Date(
+						now.Year(),
+						now.Month(),
+						now.Day(),
+						ret.loopTime, 0, 0, 0, now.Location(),
+					)
 
-				if now.After(nextTicker) {
-					nextTicker = nextTicker.Add(24 * time.Hour)
-				}
-
-				// Calculate the duration until the next 2 AM
-				durationTillTicker := time.Until(nextTicker)
-
-				select {
-				case <-time.After(durationTillTicker):
-					// Replace key after ticker
-					ret.mu.Lock()
-					ret.ctx, err = NewCryptoPAn(CreateRandomKey())
-					if err != nil {
-						log.Fatal("Error initializing crypto module", err)
+					if now.After(nextTicker) {
+						nextTicker = nextTicker.Add(24 * time.Hour)
 					}
-					ret.mu.Unlock()
-				case <-ret.stopChan:
-					// Exit the loop if stopChan is closed
-					return
+
+					// Calculate the duration until the next loop time
+					durationTillTicker := time.Until(nextTicker)
+
+					select {
+					case <-time.After(durationTillTicker):
+						// Replace key after ticker
+						ret.mu.Lock()
+						ret.ctx, err = NewCryptoPAn(CreateRandomKey())
+						if err != nil {
+							log.Fatal("Error initializing crypto module", err)
+						}
+						ret.mu.Unlock()
+					case <-ret.stopChan:
+						// Exit the loop if stopChan is closed
+						return
+					}
 				}
-			}
-		}()
+			}()
+		}
 
 	}
 
