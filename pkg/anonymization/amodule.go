@@ -129,7 +129,9 @@ func NewAModule(key string, anonymize bool, privateNets bool, localNets []string
 }
 
 func (am *AModule) Stop() error {
-	close(am.stopChan)
+	if am.stopChan != nil {
+		close(am.stopChan)
+	}
 	return nil
 }
 
