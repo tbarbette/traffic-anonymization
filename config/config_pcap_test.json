@@ -1,0 +1,21 @@
+{
+  "InInterfaces":[
+    {
+      "Driver": "fileread",
+      "Filter" : "ip", // Example filter to read only IPv4 packets
+      "Ifname": "in.pcap"
+    }
+  ],
+  "OutInterface": {
+    "Driver": "filewrite",
+    "Ifname": "out.pcapng"
+  },
+  "Misc": {
+    "Anonymize": true,
+    "LocalNets": ["130.104.0.0/16", "2001:6a8:3080::/44"],
+    "PrivateNets": true,
+    "LoopTime": -1,
+    "Key": "MyExampleKey",
+    "LogLevel": "info"
+  }
+}
