@@ -15,6 +15,7 @@
     "LocalNets": ["0.0.0.0/0"],
     "PrivateNets": true,
     "LoopTime": 2,
+    "Key": "",
     "LogLevel": "info"
   }
 }

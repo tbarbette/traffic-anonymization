@@ -32,6 +32,7 @@ type MiscConfig struct {
 	LoopTime    int
 	PrivateNets bool
 	LocalNets   []string
+	Key         string
 	LogLevel    string
 }
 
@@ -73,5 +74,6 @@ func (conf *SysConfig) loadInterfacesConfig() {
 	conf.Misc.LoopTime = viper.GetInt("Misc.LoopTime")
 	conf.Misc.PrivateNets = viper.GetBool("Misc.PrivateNets")
 	conf.Misc.LocalNets = viper.GetStringSlice("Misc.LocalNets")
+	conf.Misc.Key = viper.GetString("Misc.Key")
 	conf.Misc.LogLevel = viper.GetString("Misc.LogLevel")
 }

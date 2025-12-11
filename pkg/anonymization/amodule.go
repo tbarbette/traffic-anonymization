@@ -2,6 +2,8 @@ package anonymization
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -41,16 +43,30 @@ type AModule struct {
 func NewAModule(key string, anonymize bool, privateNets bool, localNets []string, loopTime int) *AModule {
 	ret := &AModule{}
 
-	var err error
-
 	ret.anonymize = anonymize
 	if ret.anonymize {
-		ret.ctx, err = NewCryptoPAn(CreateRandomKey())
+		keyBytes, err := resolveKey(key)
+		if err != nil {
+			log.Fatal("Error initializing crypto module", err)
+		}
+		ret.ctx, err = NewCryptoPAn(keyBytes)
 		if err != nil {
 			log.Fatal("Error initializing crypto module", err)
 		}
 
 		ret.loopTime = loopTime
+
+		// Warn if trust is broken
+		if key != "" || loopTime == -1 {
+			log.Warn("╔═══════════════════════════════════════════════════════════════════════════════╗")
+			log.Warn("║                              WARNING: TRUST BROKEN                            ║")
+			log.Warn("║                                                                               ║")
+			log.Warn("║  Static key or disabled key rotation (TimeLoop=-1) breaks trust guarantees.  ║")
+			log.Warn("║                  THIS CONFIGURATION IS FOR TESTING ONLY!                      ║")
+			log.Warn("║                                                                               ║")
+			log.Warn("╚═══════════════════════════════════════════════════════════════════════════════╝")
+		}
+
 		// Check if need to active loop to change anonymization key
 
 		ret.privateNets = privateNets
@@ -67,38 +83,43 @@ func NewAModule(key string, anonymize bool, privateNets bool, localNets []string
 		ret.stopChan = make(chan struct{})
 		if ret.loopTime >= 0 {
 			//Launch the goroutine to change key at loop time
-			go func() {
-				for {
-					now := time.Now()
-					nextTicker := time.Date(
-						now.Year(),
-						now.Month(),
-						now.Day(),
-						ret.loopTime, 0, 0, 0, now.Location(),
-					)
+			if key != "" {
+				log.Warn("LoopTime is set but a static key is provided; skipping key rotation")
+			} else {
+				go func() {
+					for {
+						now := time.Now()
+						nextTicker := time.Date(
+							now.Year(),
+							now.Month(),
+							now.Day(),
+							ret.loopTime, 0, 0, 0, now.Location(),
+						)
 
-					if now.After(nextTicker) {
-						nextTicker = nextTicker.Add(24 * time.Hour)
-					}
-
-					// Calculate the duration until the next loop time
-					durationTillTicker := time.Until(nextTicker)
-
-					select {
-					case <-time.After(durationTillTicker):
-						// Replace key after ticker
-						ret.mu.Lock()
-						ret.ctx, err = NewCryptoPAn(CreateRandomKey())
-						if err != nil {
-							log.Fatal("Error initializing crypto module", err)
+						if now.After(nextTicker) {
+							nextTicker = nextTicker.Add(24 * time.Hour)
 						}
-						ret.mu.Unlock()
-					case <-ret.stopChan:
-						// Exit the loop if stopChan is closed
-						return
+
+						// Calculate the duration until the next loop time
+						durationTillTicker := time.Until(nextTicker)
+
+						select {
+						case <-time.After(durationTillTicker):
+							// Replace key after ticker
+							ret.mu.Lock()
+							newCtx, err := NewCryptoPAn(CreateRandomKey())
+							if err != nil {
+								log.Fatal("Error initializing crypto module", err)
+							}
+							ret.ctx = newCtx
+							ret.mu.Unlock()
+						case <-ret.stopChan:
+							// Exit the loop if stopChan is closed
+							return
+						}
 					}
-				}
-			}()
+				}()
+			}
 		}
 
 	}
@@ -110,6 +131,26 @@ func NewAModule(key string, anonymize bool, privateNets bool, localNets []string
 func (am *AModule) Stop() error {
 	close(am.stopChan)
 	return nil
+}
+
+func resolveKey(key string) ([]byte, error) {
+	if key == "" {
+		return CreateRandomKey(), nil
+	}
+
+	decoded, err := hex.DecodeString(key)
+	if err == nil {
+		if len(decoded) != Size {
+			return nil, fmt.Errorf("invalid key length after hex decoding: %d (expected %d)", len(decoded), Size)
+		}
+		return decoded, nil
+	}
+
+	if len(key) != Size {
+		return nil, fmt.Errorf("invalid key length: %d (expected %d bytes or %d hex characters)", len(key), Size, Size*2)
+	}
+
+	return []byte(key), nil
 }
 
 // isTLSHandshake examines a packet to determine if it contains a TLS handshake message
